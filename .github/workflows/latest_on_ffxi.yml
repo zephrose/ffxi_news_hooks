@@ -18,11 +18,12 @@ jobs:
 
       - name: Run latest news script
         env:
-          # This line maps your GitHub Secret to the variable your Python script expects
           FFXI_DISCORD_WEBHOOK: ${{ secrets.FFXI_NEWS_WEBHOOK }}
         run: python playonline_latestNews.py
 
       - name: Run latest topics script
+        env:
+          FFXI_DISCORD_WEBHOOK: ${{ secrets.FFXI_NEWS_WEBHOOK }}
         run: python playonline_latestTopics.py
 
       - name: Commit changes
