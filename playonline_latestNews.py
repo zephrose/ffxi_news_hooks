@@ -5,7 +5,7 @@ import os
 
 # Your Webhook URL
 RSS_URL = "http://www.playonline.com/ff11us/polnews/news.xml"
-WEBHOOK_URL = os.environ['FFXI_NEWS_WEBHOOK']
+WEBHOOK_URL = os.environ['FFXI_DISCORD_WEBHOOK']
 STATE_FILE = "last_news_link.txt"
 
 def post_latest_news():

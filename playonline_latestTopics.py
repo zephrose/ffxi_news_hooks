@@ -3,7 +3,7 @@ import xml.etree.ElementTree as ET
 import re
 import os
 
-WEBHOOK_URL = os.environ['FFXI_NEWS_WEBHOOK']
+WEBHOOK_URL = os.environ['FFXI_DISCORD_WEBHOOK']
 RSS_URL = "http://www.playonline.com/pcd/topics/ff11us/topics.xml"
 BASE_URL = "http://www.playonline.com"
 STATE_FILE = "last_topic_link.txt"
