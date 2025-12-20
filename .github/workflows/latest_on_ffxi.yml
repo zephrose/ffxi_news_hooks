@@ -1,0 +1,31 @@
+name: FFXI News Bot
+on:
+  schedule:
+    - cron: '0 16 * * *' # 16:00 UTC is 8:00 AM PST
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Run latest news script
+        run: playonline_latestNews.py
+
+      - name: Run latest topics script
+        run: playonline_latestTopics.py
+
+      - name: Commit changes
+        run: |
+          git config --global user.name 'GitHub Action'
+          git config --global user.email 'action@github.com'
+          git add last_news_link.txt
+          git add last_topics_link.txt
+          git commit -m "Update last posted link" || echo "No changes to commit"
+          git push
