@@ -2,6 +2,7 @@ name: FFXI News Bot
 on:
   schedule:
     - cron: '0 16 * * *' # 16:00 UTC is 8:00 AM PST
+  workflow_dispatch:
 jobs:
   build:
     runs-on: ubuntu-latest
