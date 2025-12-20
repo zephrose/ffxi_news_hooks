@@ -6,7 +6,7 @@ import os
 WEBHOOK_URL = os.environ['FFXI_DISCORD_WEBHOOK']
 RSS_URL = "http://www.playonline.com/pcd/topics/ff11us/topics.xml"
 BASE_URL = "http://www.playonline.com"
-STATE_FILE = "last_topic_link.txt"
+STATE_FILE = "last_topics_link.txt"
 
 def post_latest_topics():
     response = requests.get(RSS_URL)
