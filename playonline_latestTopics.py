@@ -1,64 +1,83 @@
 import requests
-import xml.etree.ElementTree as ET
-import re
+from bs4 import BeautifulSoup
 import os
+import re
 
 WEBHOOK_URL = os.environ['FFXI_DISCORD_WEBHOOK']
-RSS_URL = "http://www.playonline.com/pcd/topics/ff11us/topics.xml"
+HOME_URL = "http://www.playonline.com/ff11us/index.shtml"
 BASE_URL = "http://www.playonline.com"
 STATE_FILE = "last_topics_link.txt"
 
-def post_latest_topics():
-    response = requests.get(RSS_URL)
-    root = ET.fromstring(response.content)
+def run():
+    response = requests.get(HOME_URL)
+    # PlayOnline often uses Western encoding
+    soup = BeautifulSoup(response.content, "html.parser", from_encoding="latin-1")
     
-    # Namespaces used in FFXI RDF feeds
-    ns = {'rss': 'http://purl.org/rss/1.0/', 'dc': 'http://purl.org/dc/elements/1.1/'}
-
-    # Grab the latest item
-    item = root.find('.//rss:item', ns)
-    title = item.find('rss:title', ns).text
-    link = item.find('rss:link', ns).text
-    desc_raw = item.find('rss:description', ns).text
-
-    # 1. Extract Image URL if one exists in the CDATA
-    img_match = re.search(r'src="([^"]+)"', desc_raw)
-    image_url = img_match.group(1) if img_match else None
-
-    # 2. Fix relative links (e.g., /pcd/topics... -> http://playonline.com/pcd/topics...)
-    if link.startswith('/'):
-        link = BASE_URL + link
-
-    # 3. Clean HTML tags for the text description
-    clean_desc = re.sub('<[^<]+?>', '', desc_raw).strip()
-    # Remove excessive newlines and "Read on" text
-    clean_desc = clean_desc.split("Read on")[0].strip()
-
-    # Read the last link we posted
-    last_link = ""
-    if os.path.exists(STATE_FILE):
-        with open(STATE_FILE, "r") as f:
-            last_link = f.read().strip()
-
-    if link == last_link:
-        print("No new articles. Skipping.")
+    # 1. Locate the Topic Headline section
+    hg_header = soup.find("p", class_="tx_topics_hg4")
+    if not hg_header:
+        print("Could not find the topics header class.")
         return
 
-    payload = {
-        "embeds": [{
-            "title": f"🆕 {title}",
-            "url": link,
-            "description": clean_desc[:400] + "...", 
-            "color": 15105570, # A gold/orange color for Topics
-            "image": {"url": image_url} if image_url else None,
-            "footer": {"text": "Final Fantasy XI Topics"}
-        }]
-    }
+    found_topics = []
+    # 2. Iterate through siblings following the header
+    # We look for tx_topics_tl for the title/link and the next tx_topics for description
+    current = hg_header.find_next_sibling()
+    
+    while current and len(found_topics) < 3:
+        if "tx_topics_tl" in current.get("class", []):
+            link_tag = current.find("a")
+            if link_tag:
+                title = link_tag.get_text(strip=True)
+                url = link_tag["href"]
+                if url.startswith('/'): url = BASE_URL + url
+                
+                # The description is usually the very next sibling with class 'tx_topics'
+                desc_tag = current.find_next_sibling("p", class_="tx_topics")
+                description = desc_tag.get_text(strip=True) if desc_tag else ""
+                
+                # Look for an image inside that description tag
+                img_tag = desc_tag.find("img") if desc_tag else None
+                image_url = img_tag["src"] if img_tag else None
+                if image_url and not image_url.startswith('http'):
+                    image_url = BASE_URL + image_url
 
-    requests.post(WEBHOOK_URL, json=payload)
+                found_topics.append({
+                    "title": title,
+                    "url": url,
+                    "desc": description[:400] + "..." if len(description) > 400 else description,
+                    "image": image_url
+                })
+        current = current.find_next_sibling()
 
-    # Update the state file with the new link
+    # 3. Handle Duplicate Prevention
+    if os.path.exists(STATE_FILE):
+        with open(STATE_FILE, "r") as f:
+            already_posted = f.read().splitlines()
+    else:
+        already_posted = []
+
+    for topic in found_topics:
+        if topic['url'] in already_posted:
+            continue
+
+        payload = {
+            "embeds": [{
+                "title": f"✨ {topic['title']}",
+                "url": topic['url'],
+                "description": topic['desc'],
+                "color": 15844367, # Gold
+                "image": {"url": topic['image']} if topic['image'] else None,
+                "footer": {"text": "FFXI Official Topics"}
+            }]
+        }
+        
+        requests.post(WEBHOOK_URL, json=payload)
+        already_posted.append(topic['url'])
+
+    # 4. Save State
     with open(STATE_FILE, "w") as f:
-        f.write(link)
+        f.write("\n".join(already_posted[-20:]))
 
-post_latest_topics()
+if __name__ == "__main__":
+    run()
