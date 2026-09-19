@@ -3,7 +3,7 @@ from bs4 import BeautifulSoup
 import os
 import re
 
-WEBHOOK_URL = "https://discord.com/api/webhooks/1451447255121793156/UAONMgrw9eVwZqt15YJ028uxXoxvhLqBEF--esECyjOfP5CqP-_KiufkDcf3TcHuu9JQ"#os.environ['FFXI_DISCORD_WEBHOOK']
+WEBHOOK_URL = os.environ['FFXI_DISCORD_WEBHOOK']
 TOPICS_DATA_URL = "https://www.playonline.com/pcd2/topics/ff11us/topics_latest.html"
 HOME_URL = "https://www.playonline.com/ff11us/"
 BASE_URL = "http://www.playonline.com"
